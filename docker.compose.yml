@@ -1,0 +1,47 @@
+version: '1.0'
+
+services:
+  langchain_api_prod:
+    container_name: "langchain_api_prod"
+    environment:
+      - NODE_ENV=prod
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    env_file:
+      - ./app/src/config/env/prod.env
+    ports:
+      - 3311:3311
+    depends_on:
+      - postgress_langchain_db
+    networks:
+      - langchain_network
+      - caddy_network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.11'
+          memory: 512M
+
+  postgress_langchain_db:
+    container_name: postgress_langchain_db
+    image: pgvector/pgvector:pg16
+    volumes:
+      - ./init.sql:/docker-entrypoint/init.sql
+    environment:
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_USER=pgvector
+      - POSTGRES_DB=pgvector-db
+    ports:
+      - 5444:5432
+    networks:
+      - langchain_network
+
+networks:
+  caddy_network:
+    name: caddy_network
+    external: true
+  langchain_network:
+    name: langchain_network
+    driver: bridge
